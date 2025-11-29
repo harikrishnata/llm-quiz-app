@@ -1,0 +1,28 @@
+FROM python:3.10-slim
+
+# Install Chrome and dependencies
+RUN apt-get update && apt-get install -y \
+    wget \
+    gnupg \
+    unzip \
+    curl \
+    chromium \
+    chromium-driver \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set Chrome/Chromium paths
+ENV CHROME_BIN=/usr/bin/chromium
+ENV CHROMEDRIVER_PATH=/usr/bin/chromedriver
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY app.py .
+
+ENV PORT=7860
+EXPOSE 7860
+
+# Use gunicorn with gevent worker and increased timeout
+CMD ["gunicorn", "--bind", "0.0.0.0:7860", "--worker-class", "gevent", "--workers", "1", "--timeout", "180", "--graceful-timeout", "180", "app:app"]
