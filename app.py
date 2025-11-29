@@ -616,10 +616,15 @@ def solve_quiz_chain(initial_url, email, secret, max_iterations=10):
                     break
             # --- END RETRY LOGIC ---
             
+            quiz_status = "success" if result.get("correct") else "failure"
+            print(f"QUIZ RESULT: {quiz_status.upper()} for {current_url}", flush=True)
+
             results.append({
+                "quiz_number": i + 1,
                 "url": current_url,
                 "answer": current_answer,
                 "correct": result.get("correct", False),
+                "status": quiz_status,
                 "reason": result.get("reason", "")
             })
             
@@ -668,17 +673,15 @@ def quiz_endpoint():
         if not all([email, secret, url]):
             return jsonify({"error": "Missing required fields"}), 400
         
-        if secret != YOUR_SECRET:
-            return jsonify({"error": "Invalid secret"}), 403
-        
-        if email != YOUR_EMAIL:
-            return jsonify({"error": "Invalid email"}), 403
-        
+        if secret != YOUR_SECRET or email != YOUR_EMAIL:
+            return jsonify({"error": "Invalid credentials"}), 403
+            
+        # Run solver synchronously and return per-quiz results
         results = solve_quiz_chain(url, email, secret)
-        
+
         return jsonify({
-            "status": "success",
-            "message": "Quiz processing completed",
+            "status": "completed",
+            "timestamp": datetime.now().isoformat(),
             "results": results
         }), 200
         
